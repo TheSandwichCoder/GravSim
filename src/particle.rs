@@ -5,7 +5,7 @@ use std::fmt;
 pub struct Particle {
     prev_pos: Vec2,
     pos: Vec2,
-    vel: Vec2,
+    prev_acc: Vec2,
     acc: Vec2,
     mass: f32,
     radius: f32,
@@ -16,19 +16,32 @@ impl Particle {
         return Particle {
             prev_pos: Vec2::zero(),
             pos: Vec2::zero(),
-            vel: Vec2::zero(),
+            prev_acc: Vec2::zero(),
             acc: Vec2::zero(),
             mass: 1.0,
             radius: 1.0,
         };
     }
 
+    pub fn reset_acc(&mut self) {
+        self.prev_acc = self.acc;
+        self.acc = Vec2::zero();
+    }
+
     pub fn integrate(&mut self, dt: f32) {
-        self.vel = (self.pos - self.prev_pos) * DAMPING;
-        let new_pos = self.pos + self.vel + self.acc * (dt * dt);
+        let vel = (self.pos - self.prev_pos) * DAMPING;
+        let new_pos = self.pos + vel + self.acc * (dt * dt);
         self.prev_pos = self.pos;
         self.pos = new_pos;
-        self.acc = Vec2::zero();
+        self.reset_acc();
+    }
+
+    pub fn get_vel(&self) -> Vec2 {
+        return self.pos - self.prev_pos;
+    }
+
+    pub fn set_vel(&mut self, new_vel: Vec2) {
+        self.prev_pos = self.pos - new_vel;
     }
 
     pub fn apply_force(&mut self, force: Vec2) {
@@ -47,7 +60,9 @@ impl fmt::Display for Particle {
         write!(
             f,
             "Particle (pos: {} vel: {} acc: {})",
-            self.pos, self.vel, self.acc
+            self.pos,
+            self.get_vel(),
+            self.prev_acc
         )
     }
 }

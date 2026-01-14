@@ -15,6 +15,10 @@ impl Vec2 {
     pub fn zero() -> Vec2 {
         return Vec2::new(0.0, 0.0);
     }
+
+    pub fn dot(&self, other: Vec2) -> f32 {
+        return self.x * other.x + self.y * other.y;
+    }
 }
 
 impl Add for Vec2 {
