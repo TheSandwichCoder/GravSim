@@ -3,12 +3,12 @@ use crate::vector::Vec2;
 use std::fmt;
 
 pub struct Particle {
-    prev_pos: Vec2,
-    pos: Vec2,
-    prev_acc: Vec2,
-    acc: Vec2,
-    mass: f32,
-    radius: f32,
+    pub prev_pos: Vec2,
+    pub pos: Vec2,
+    pub prev_acc: Vec2,
+    pub acc: Vec2,
+    pub mass: f32,
+    pub radius: f32,
 }
 
 impl Particle {
@@ -19,7 +19,7 @@ impl Particle {
             prev_acc: Vec2::zero(),
             acc: Vec2::zero(),
             mass: 1.0,
-            radius: 1.0,
+            radius: 0.001,
         };
     }
 
@@ -64,5 +64,17 @@ impl fmt::Display for Particle {
             self.get_vel(),
             self.prev_acc
         )
+    }
+}
+
+pub struct ParticleData{
+    pub position: Vec2,
+}
+
+impl ParticleData{
+    pub fn new(particle: &Particle) -> ParticleData{
+        return ParticleData{
+            position: particle.pos,
+        };
     }
 }

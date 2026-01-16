@@ -3,8 +3,8 @@ use std::ops::*;
 
 #[derive(Clone, Copy)]
 pub struct Vec2 {
-    x: f32,
-    y: f32,
+    pub x: f32,
+    pub y: f32,
 }
 
 impl Vec2 {
