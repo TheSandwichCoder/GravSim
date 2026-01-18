@@ -19,7 +19,7 @@ impl Particle {
             prev_acc: Vec2::zero(),
             acc: Vec2::zero(),
             mass: 1.0,
-            radius: 0.001,
+            radius: 0.005,
         };
     }
 
@@ -72,13 +72,13 @@ impl fmt::Display for Particle {
     }
 }
 
-pub struct ParticleData{
+pub struct ParticleData {
     pub position: Vec2,
 }
 
-impl ParticleData{
-    pub fn new(particle: &Particle) -> ParticleData{
-        return ParticleData{
+impl ParticleData {
+    pub fn new(particle: &Particle) -> ParticleData {
+        return ParticleData {
             position: particle.pos,
         };
     }

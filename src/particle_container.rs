@@ -1,7 +1,7 @@
+use crate::constants::*;
 use crate::particle::*;
 use crate::vector::*;
 use crate::vector::*;
-use crate::constants::*;
 
 pub struct Container {
     pub particles: Vec<Particle>,
@@ -16,37 +16,86 @@ impl Container {
 
     pub fn add_particle(&mut self) {
         let mut new_particle = Particle::new();
-        new_particle.set_pos(Vec2::rand_uniform());
+        let random_pos = Vec2::rand_uniform();
+        new_particle.set_pos(random_pos);
+        // new_particle.set_vel(random_pos.perp() * 0.01);
         self.particles.push(new_particle);
     }
 
-    pub fn container_collisions(&mut self, dt: f32){
-        for particle in &mut self.particles{
+    pub fn interparticle_gravity(&mut self) {
+        let n_particles = self.particles.len();
+        for pt1_i in 0..n_particles {
+            for pt2_i in (pt1_i + 1)..n_particles {
+                let delta = self.particles[pt2_i].pos - self.particles[pt1_i].pos;
+                let delta_length_squared = delta.length_squared();
+
+                if delta_length_squared != 0.0 {
+                    let attract_vec = delta.normalize() / (delta_length_squared)
+                        * GRAVITY_CONST
+                        * self.particles[pt1_i].mass
+                        * self.particles[pt2_i].mass;
+
+                    self.particles[pt1_i].apply_force(attract_vec);
+                    self.particles[pt2_i].apply_force(-attract_vec);
+                }
+            }
+        }
+    }
+
+    pub fn particle_collisions_slow(&mut self, dt: f32) {
+        let n_particles = self.particles.len();
+
+        for pt1_i in 0..n_particles {
+            for pt2_i in (pt1_i + 1)..n_particles {
+                let mut delta = self.particles[pt2_i].pos - self.particles[pt1_i].pos;
+
+                let mut dist2 = delta.length_squared();
+                let min_dis = self.particles[pt1_i].radius + self.particles[pt2_i].radius;
+
+                if dist2 == 0.0 {
+                    delta = Vec2::rand_uniform();
+                    dist2 = delta.length_squared();
+                }
+
+                if dist2 < min_dis * min_dis {
+                    let dist = dist2.sqrt();
+                    let n = delta / dist;
+
+                    let pen = min_dis - dist;
+
+                    let corr = n * (pen * 0.5);
+                    self.particles[pt1_i].pos -= corr;
+                    self.particles[pt2_i].pos += corr;
+                }
+            }
+        }
+    }
+
+    pub fn container_collisions(&mut self, dt: f32) {
+        for particle in &mut self.particles {
             let particle_vel = particle.get_vel();
 
-            if particle.pos.x - particle.radius < -1.0{
+            if particle.pos.x - particle.radius < -1.0 {
                 particle.pos = Vec2::new(-1.0 + particle.radius, particle.pos.y);
                 particle.set_vel(Vec2::new((particle_vel.x).abs(), particle_vel.y));
-            }
-            else if particle.pos.x + particle.radius > 1.0{
+            } else if particle.pos.x + particle.radius > 1.0 {
                 particle.pos = Vec2::new(1.0 - particle.radius, particle.pos.y);
                 particle.set_vel(Vec2::new(-(particle_vel.x).abs(), particle_vel.y));
             }
 
-            if particle.pos.y - particle.radius < -1.0{
+            if particle.pos.y - particle.radius < -1.0 {
                 particle.pos = Vec2::new(particle.pos.x, -1.0 + particle.radius);
                 particle.set_vel(Vec2::new(particle_vel.x, (particle_vel.y).abs()));
-            }
-            else if particle.pos.y + particle.radius > 1.0{
+            } else if particle.pos.y + particle.radius > 1.0 {
                 particle.pos = Vec2::new(particle.pos.x, 1.0 - particle.radius);
                 particle.set_vel(Vec2::new(particle_vel.x, -(particle_vel.y).abs()));
             }
         }
     }
 
-    pub fn apply_gravity(&mut self){
-        for particle in &mut self.particles{
-            particle.apply_force(Vec2::new(0.0, GRAVITY_CONST) * particle.mass);
+    pub fn apply_gravity(&mut self) {
+        for particle in &mut self.particles {
+            particle.apply_force(Vec2::new(0.0, GLOBAL_GRAVITY_CONST) * particle.mass);
         }
     }
 

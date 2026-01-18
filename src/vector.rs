@@ -1,6 +1,6 @@
+use rand::Rng;
 use std::fmt;
 use std::ops::*;
-use rand::Rng;
 
 #[derive(Clone, Copy)]
 pub struct Vec2 {
@@ -18,15 +18,31 @@ impl Vec2 {
     }
 
     pub fn dot(&self, other: Vec2) -> f32 {
-        return self.x * 
-        other.x + self.y * other.y;
+        return self.x * other.x + self.y * other.y;
+    }
+
+    pub fn perp(&self) -> Vec2 {
+        return Vec2::new(-self.y, self.x);
+    }
+
+    pub fn length(&self) -> f32 {
+        return (self.length_squared()).sqrt();
+    }
+
+    pub fn normalize(&self) -> Vec2 {
+        let l = self.length();
+        return *self / l;
+    }
+
+    pub fn length_squared(&self) -> f32 {
+        return self.x * self.x + self.y * self.y;
     }
 
     pub fn rand_uniform() -> Vec2 {
-        let mut rng = rand::thread_rng();
+        let mut rng_thing = rand::thread_rng();
 
-        let x: f32 = rng.gen_range(-1.0..1.0);
-        let y: f32 = rng.gen_range(-1.0..1.0);
+        let x: f32 = rng_thing.gen_range(-1.0..1.0);
+        let y: f32 = rng_thing.gen_range(-1.0..1.0);
         return Vec2::new(x, y);
     }
 }
@@ -79,6 +95,13 @@ impl AddAssign for Vec2 {
     fn add_assign(&mut self, other: Self) {
         self.x += other.x;
         self.y += other.y;
+    }
+}
+
+impl SubAssign for Vec2 {
+    fn sub_assign(&mut self, other: Self) {
+        self.x -= other.x;
+        self.y -= other.y;
     }
 }
 

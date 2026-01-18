@@ -1,3 +1,4 @@
+use crate::functions::show_progress;
 use crate::particle::*;
 use crate::particle_container::*;
 use crate::vector::*;
@@ -8,8 +9,6 @@ pub struct SimulationSpecs {
     sim_time: f32, // ms
     n_sub_steps: u32,
     is_recording: bool,
-
-
 
     // dependent variables
     n_steps: u32,
@@ -36,6 +35,7 @@ impl SimulationSpecs {
 
     pub fn set_dt(&mut self, dt: f32) {
         self.dt = dt;
+        self.update_dependents();
     }
 
     pub fn set_recording(&mut self, rec: bool) {
@@ -57,55 +57,49 @@ impl SimulationSpecs {
     }
 }
 
-pub struct SimulationRecorder{
+pub struct SimulationRecorder {
     data: Vec<RecorderStep>,
 }
 
-
-impl SimulationRecorder{
-    pub fn new() -> SimulationRecorder{
-        return SimulationRecorder{
-            data: Vec::new(),
-        };
+impl SimulationRecorder {
+    pub fn new() -> SimulationRecorder {
+        return SimulationRecorder { data: Vec::new() };
     }
 
-    pub fn record_step(&mut self, container: &Container){
-
+    pub fn record_step(&mut self, container: &Container) {
         let mut particle_step: Vec<ParticleData> = Vec::new();
-        for particle in &container.particles{
+        for particle in &container.particles {
             particle_step.push(ParticleData::new(&particle));
         }
         self.data.push(RecorderStep::new(&container));
     }
 
-    pub fn export_recording(&self, path: &str){
+    pub fn export_recording(&self, path: &str) {
         let mut recording_string = String::new();
-        for particle_step in &self.data{
-            for particle in &particle_step.particle_data{
-                recording_string.push_str(&format!("{} {},", particle.position.x, particle.position.y));
+        for particle_step in &self.data {
+            for particle in &particle_step.particle_data {
+                recording_string
+                    .push_str(&format!("{} {},", particle.position.x, particle.position.y));
             }
             recording_string.push_str("\n");
         }
-        
 
         std::fs::write(path, recording_string).expect("Unable to write file");
-    }   
+    }
 }
 
-pub struct RecorderStep{
+pub struct RecorderStep {
     particle_data: Vec<ParticleData>,
 }
 
-impl RecorderStep{
-    pub fn new(container: &Container) -> RecorderStep{
+impl RecorderStep {
+    pub fn new(container: &Container) -> RecorderStep {
         let mut particle_data: Vec<ParticleData> = Vec::new();
-        for particle in &container.particles{  
+        for particle in &container.particles {
             particle_data.push(ParticleData::new(&particle));
         }
 
-        return RecorderStep{
-            particle_data,
-        };
+        return RecorderStep { particle_data };
     }
 }
 
@@ -127,26 +121,35 @@ impl Simulation {
     pub fn run(&mut self) {
         println!("SIM START");
 
-        
         for i in 0..10000 {
             self.container.add_particle();
         }
 
-
         for sim_step in 0..self.sim_info.n_steps {
             for sub_step in 0..self.sim_info.n_sub_steps {
-                self.container.container_collisions(
-                    self.sim_info.sub_step_dt
-                );
-                self.container.apply_gravity();
-                self.container.integrate_particles(
-                    self.sim_info.sub_step_dt,
-                );
+                // self.container.apply_gravity();
 
+                self.container
+                    .integrate_particles(self.sim_info.sub_step_dt);
+
+                // self.container
+                //     .container_collisions(self.sim_info.sub_step_dt);
+
+                self.container.interparticle_gravity();
+
+                for i in 0..5 {
+                    self.container
+                        .particle_collisions_slow(self.sim_info.sub_step_dt);
+                }
+
+                // self.container
+                //     .container_collisions(self.sim_info.sub_step_dt);
             }
             if (self.sim_info.is_recording) {
                 self.sim_recorder.record_step(&self.container);
             }
+
+            show_progress(sim_step as usize, 0, self.sim_info.n_steps as usize);
         }
         println!("SIM END");
     }
