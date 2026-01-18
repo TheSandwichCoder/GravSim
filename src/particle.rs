@@ -40,6 +40,11 @@ impl Particle {
         return self.pos - self.prev_pos;
     }
 
+    pub fn set_pos(&mut self, new_pos: Vec2) {
+        self.pos = new_pos;
+        self.prev_pos = new_pos;
+    }
+
     pub fn set_vel(&mut self, new_vel: Vec2) {
         self.prev_pos = self.pos - new_vel;
     }

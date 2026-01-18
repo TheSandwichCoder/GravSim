@@ -9,7 +9,7 @@ pub struct SimulationSpecs {
     n_sub_steps: u32,
     is_recording: bool,
 
-    
+
 
     // dependent variables
     n_steps: u32,
@@ -88,7 +88,6 @@ impl SimulationRecorder{
         }
         
 
-        println!("{}"   , recording_string);
         std::fs::write(path, recording_string).expect("Unable to write file");
     }   
 }
@@ -128,7 +127,12 @@ impl Simulation {
     pub fn run(&mut self) {
         println!("SIM START");
 
-        self.container.add_particle();
+        
+        for i in 0..10000 {
+            self.container.add_particle();
+        }
+
+
         for sim_step in 0..self.sim_info.n_steps {
             for sub_step in 0..self.sim_info.n_sub_steps {
                 self.container.container_collisions(
@@ -138,7 +142,6 @@ impl Simulation {
                 self.container.integrate_particles(
                     self.sim_info.sub_step_dt,
                 );
-                self.container.show_particles();
 
             }
             if (self.sim_info.is_recording) {

@@ -15,7 +15,9 @@ impl Container {
     }
 
     pub fn add_particle(&mut self) {
-        self.particles.push(Particle::new());
+        let mut new_particle = Particle::new();
+        new_particle.set_pos(Vec2::rand_uniform());
+        self.particles.push(new_particle);
     }
 
     pub fn container_collisions(&mut self, dt: f32){
