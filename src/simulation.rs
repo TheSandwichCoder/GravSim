@@ -2,6 +2,7 @@ use crate::functions::show_progress;
 use crate::particle::*;
 use crate::particle_container::*;
 use crate::vector::*;
+use std::time::Instant;
 
 #[derive(Clone)]
 pub struct SimulationSpecs {
@@ -50,7 +51,7 @@ impl SimulationSpecs {
         self.n_particles = n_particles;
     }
 
-    pub fn set_n_collision_steps(&mut self, coll_steps: u32){
+    pub fn set_n_collision_steps(&mut self, coll_steps: u32) {
         self.n_collision_steps = coll_steps;
     }
 
@@ -118,6 +119,7 @@ impl RecorderStep {
 
 pub struct Simulation {
     pub container: Container,
+
     pub sim_info: SimulationSpecs,
     pub sim_recorder: SimulationRecorder,
 }
@@ -145,18 +147,26 @@ impl Simulation {
                 self.container
                     .integrate_particles(self.sim_info.sub_step_dt);
 
-                // self.container
-                //     .container_collisions(self.sim_info.sub_step_dt);
+                self.container
+                    .container_collisions(self.sim_info.sub_step_dt);
 
+                self.container.construct_quadtree();
+                self.container.quadtree.propogate();
+
+                let start_time = Instant::now();
                 self.container.interparticle_gravity();
+                println!("{:?}", start_time.elapsed());
+                // self.container.interparticle_gravity_quadratic();
 
                 for i in 0..self.sim_info.n_collision_steps {
-                    self.container
-                        .particle_collisions_slow(self.sim_info.sub_step_dt);
+                    // self.container.construct_quadtree();
+                    // self.container
+                    //     .particle_collisions_quadratic(self.sim_info.sub_step_dt);
+                    self.container.particle_collision(self.sim_info.sub_step_dt);
                 }
 
-                // self.container
-                //     .container_collisions(self.sim_info.sub_step_dt);
+                self.container
+                    .container_collisions(self.sim_info.sub_step_dt);
             }
             if (self.sim_info.is_recording) {
                 self.sim_recorder.record_step(&self.container);

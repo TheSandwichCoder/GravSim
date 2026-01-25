@@ -1,4 +1,5 @@
 use crate::constants::*;
+use crate::qtree::Bound;
 use crate::vector::Vec2;
 use std::fmt;
 
@@ -51,6 +52,12 @@ impl Particle {
 
     pub fn apply_force(&mut self, force: Vec2) {
         self.acc += force / self.mass;
+    }
+
+    pub fn get_bound(&self) -> Bound {
+        let offset = Vec2::new(self.radius, self.radius) * 2.0;
+
+        return Bound::new(self.pos - offset, self.pos + offset);
     }
 }
 

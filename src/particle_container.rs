@@ -1,17 +1,30 @@
 use crate::constants::*;
+use crate::functions::*;
 use crate::particle::*;
-use crate::vector::*;
+use crate::qtree::QuadTree;
 use crate::vector::*;
 
 pub struct Container {
     pub particles: Vec<Particle>,
+    pub quadtree: QuadTree,
 }
 
 impl Container {
     pub fn new() -> Container {
         return Container {
             particles: Vec::new(),
+            quadtree: QuadTree::new(),
         };
+    }
+
+    pub fn construct_quadtree(&mut self) {
+        self.quadtree.reset();
+
+        self.particles.sort_unstable_by_key(|p| morton_key(p.pos));
+
+        for particle_i in 0..self.particles.len() {
+            self.quadtree.add_particle(&self.particles, particle_i);
+        }
     }
 
     pub fn add_particle(&mut self) {
@@ -22,7 +35,7 @@ impl Container {
         self.particles.push(new_particle);
     }
 
-    pub fn interparticle_gravity(&mut self) {
+    pub fn interparticle_gravity_quadratic(&mut self) {
         let n_particles = self.particles.len();
         for pt1_i in 0..n_particles {
             for pt2_i in (pt1_i + 1)..n_particles {
@@ -42,31 +55,62 @@ impl Container {
         }
     }
 
-    pub fn particle_collisions_slow(&mut self, dt: f32) {
+    pub fn interparticle_gravity(&mut self) {
+        for particle in &mut self.particles {
+            let grav_force = self.quadtree.get_grav_force(particle.pos) * GRAVITY_CONST;
+            // println!("{}", grav_force);
+
+            particle.apply_force(grav_force);
+        }
+    }
+
+    pub fn resolve_collision(&mut self, pt1_i: usize, pt2_i: usize) {
+        let mut delta = self.particles[pt2_i].pos - self.particles[pt1_i].pos;
+
+        let mut dist2 = delta.length_squared();
+        let min_dis = self.particles[pt1_i].radius + self.particles[pt2_i].radius;
+
+        if dist2 == 0.0 {
+            delta = Vec2::rand_uniform();
+            dist2 = delta.length_squared();
+        }
+
+        if dist2 < min_dis * min_dis {
+            let dist = dist2.sqrt();
+            let n = delta / dist;
+
+            let pen = min_dis - dist;
+
+            let corr = n * (pen * 0.5);
+            self.particles[pt1_i].pos -= corr;
+            self.particles[pt2_i].pos += corr;
+        }
+    }
+
+    pub fn particle_collision(&mut self, dt: f32) {
+        let n_particles = self.particles.len();
+
+        for pt1_i in 0..n_particles {
+            let potential_collisions = self.quadtree.idx_bound(&self.particles[pt1_i].get_bound());
+            // println!("{:?}", potential_collisions);
+            // println!("{}", potential_collisions.len)
+
+            for pt2_i in potential_collisions {
+                if pt1_i == pt2_i {
+                    continue;
+                }
+
+                self.resolve_collision(pt1_i, pt2_i);
+            }
+        }
+    }
+
+    pub fn particle_collisions_quadratic(&mut self, dt: f32) {
         let n_particles = self.particles.len();
 
         for pt1_i in 0..n_particles {
             for pt2_i in (pt1_i + 1)..n_particles {
-                let mut delta = self.particles[pt2_i].pos - self.particles[pt1_i].pos;
-
-                let mut dist2 = delta.length_squared();
-                let min_dis = self.particles[pt1_i].radius + self.particles[pt2_i].radius;
-
-                if dist2 == 0.0 {
-                    delta = Vec2::rand_uniform();
-                    dist2 = delta.length_squared();
-                }
-
-                if dist2 < min_dis * min_dis {
-                    let dist = dist2.sqrt();
-                    let n = delta / dist;
-
-                    let pen = min_dis - dist;
-
-                    let corr = n * (pen * 0.5);
-                    self.particles[pt1_i].pos -= corr;
-                    self.particles[pt2_i].pos += corr;
-                }
+                self.resolve_collision(pt1_i, pt2_i);
             }
         }
     }

@@ -53,6 +53,7 @@ camera_move_speed = 0.1
 
 mouse_is_down = False
 thing_pressed = False
+space_pressed = False
 just_scrolled = False
 
 marked_pos = pygame.Vector2(0, 0)
@@ -101,7 +102,11 @@ while running:
         frame_i = 0
 
     if keys[pygame.K_SPACE]:
-        is_paused = not is_paused
+        if space_pressed:
+            is_paused = not is_paused
+        space_pressed = False
+    else:
+        space_pressed = True
 
     if not is_paused:
         frame_i += 1
