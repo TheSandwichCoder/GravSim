@@ -8,6 +8,8 @@ pub struct SimulationSpecs {
     dt: f32,
     sim_time: f32, // ms
     n_sub_steps: u32,
+    n_collision_steps: u32,
+    n_particles: u32,
     is_recording: bool,
 
     // dependent variables
@@ -21,6 +23,8 @@ impl SimulationSpecs {
             dt: 0.1,
             sim_time: 10.0,
             n_sub_steps: 5,
+            n_collision_steps: 3,
+            n_particles: 100,
             is_recording: false,
 
             n_steps: (10.0 / 0.1) as u32,
@@ -40,6 +44,14 @@ impl SimulationSpecs {
 
     pub fn set_recording(&mut self, rec: bool) {
         self.is_recording = rec;
+    }
+
+    pub fn set_n_particles(&mut self, n_particles: u32) {
+        self.n_particles = n_particles;
+    }
+
+    pub fn set_n_collision_steps(&mut self, coll_steps: u32){
+        self.n_collision_steps = coll_steps;
     }
 
     pub fn set_framerate(&mut self, fr: u32) {
@@ -83,6 +95,7 @@ impl SimulationRecorder {
             }
             recording_string.push_str("\n");
         }
+        println!("");
 
         std::fs::write(path, recording_string).expect("Unable to write file");
     }
@@ -121,7 +134,7 @@ impl Simulation {
     pub fn run(&mut self) {
         println!("SIM START");
 
-        for i in 0..10000 {
+        for i in 0..self.sim_info.n_particles {
             self.container.add_particle();
         }
 
@@ -137,7 +150,7 @@ impl Simulation {
 
                 self.container.interparticle_gravity();
 
-                for i in 0..5 {
+                for i in 0..self.sim_info.n_collision_steps {
                     self.container
                         .particle_collisions_slow(self.sim_info.sub_step_dt);
                 }
