@@ -59,6 +59,10 @@ just_scrolled = False
 marked_pos = pygame.Vector2(0, 0)
 temp_camera_pos = pygame.Vector2(0, 0)
 
+circle_radius = 0.002
+
+default_size = max(WIDTH * circle_radius * 0.5, 1.0)
+
 while running:
     keys = pygame.key.get_pressed()
     mouse_pos = screen_to_glob(pygame.Vector2(pygame.mouse.get_pos()))
@@ -138,7 +142,7 @@ while running:
 
         color_draw = (200, 20, 20)
 
-        pygame.draw.circle(screen, color_draw, glob_to_screen((pygame.Vector2(float(pos[0]), float(pos[1])) - camera_offset) * true_zoom_val), max(WIDTH * 0.005 * 0.5, WIDTH * 0.005 * 0.5 * true_zoom_val))
+        pygame.draw.circle(screen, color_draw, glob_to_screen((pygame.Vector2(float(pos[0]), float(pos[1])) - camera_offset) * true_zoom_val), max(default_size, WIDTH * circle_radius * 0.5 * true_zoom_val))
 
     line_sz=  0.02
     line_thick = 2

@@ -16,7 +16,7 @@ use crate::vector::*;
 fn main() {
     let mut simulation_specs = SimulationSpecs::default();
     simulation_specs.set_framerate(30);
-    simulation_specs.set_sim_time(10.0);
+    simulation_specs.set_sim_time(30.0);
     simulation_specs.set_recording(true);
     simulation_specs.set_n_particles(3000);
     simulation_specs.set_n_collision_steps(8);

@@ -46,6 +46,7 @@ pub struct QNode {
     bound: Bound,
     depth: u32,
     children: usize,
+    next: usize,
     is_leaf: bool,
     particle_contained: i32,
 
@@ -54,11 +55,12 @@ pub struct QNode {
 }
 
 impl QNode {
-    pub fn new(bot_left: Vec2, bound_size: Vec2, d: u32) -> Self {
+    pub fn new(bot_left: Vec2, bound_size: Vec2, d: u32, next: usize) -> Self {
         return QNode {
             bound: Bound::new(bot_left, bot_left + bound_size),
             depth: d,
             children: 0,
+            next: next,
             is_leaf: true,
             particle_contained: -1,
             total_mass: 0.0,
@@ -81,7 +83,7 @@ pub struct QuadTree {
 impl QuadTree {
     pub fn new() -> Self {
         return QuadTree {
-            stack: vec![QNode::new(Vec2::new(-1.0, -1.0), Vec2::new(2.0, 2.0), 0)],
+            stack: vec![QNode::new(Vec2::new(-1.0, -1.0), Vec2::new(2.0, 2.0), 0, 0)],
             dfs_stack: vec![0],
         };
     }
@@ -89,7 +91,7 @@ impl QuadTree {
     pub fn reset(&mut self) {
         self.stack.clear();
         self.stack
-            .push(QNode::new(Vec2::new(-1.0, -1.0), Vec2::new(2.0, 2.0), 0));
+            .push(QNode::new(Vec2::new(-1.0, -1.0), Vec2::new(2.0, 2.0), 0, 0));
     }
 
     pub fn subdivide_node(&mut self, node_i: usize) {
@@ -106,21 +108,25 @@ impl QuadTree {
             bound_bot_left + Vec2::zero(),
             new_bound_dim,
             next_depth,
+            last_idx + 1,
         ));
         self.stack.push(QNode::new(
             bound_bot_left + Vec2::new(new_bound_dim.x, 0.0),
             new_bound_dim,
             next_depth,
+            last_idx + 2,
         ));
         self.stack.push(QNode::new(
             bound_bot_left + Vec2::new(0.0, new_bound_dim.y),
             new_bound_dim,
             next_depth,
+            last_idx + 3,
         ));
         self.stack.push(QNode::new(
             bound_bot_left + new_bound_dim,
             new_bound_dim,
             next_depth,
+            self.stack[node_i].next,
         ));
 
         self.stack[node_i].children = last_idx;
@@ -162,13 +168,14 @@ impl QuadTree {
         return curr_node_i;
     }
 
-    pub fn idx_bound(&self, other_bound: &Bound) -> Vec<usize> {
+    pub fn idx_bound(&mut self, other_bound: &Bound) -> Vec<usize> {
         let mut close_children: Vec<usize> = Vec::new();
 
-        let mut dfs_stack = vec![0];
+        self.dfs_stack.clear();
+        self.dfs_stack.push(0);
 
-        while !dfs_stack.is_empty() {
-            let node_i = dfs_stack.pop().unwrap();
+        while !self.dfs_stack.is_empty() {
+            let node_i = self.dfs_stack.pop().unwrap();
 
             let curr_node = &self.stack[node_i];
 
@@ -185,7 +192,7 @@ impl QuadTree {
 
             let child_start_i = curr_node.children;
             for child_i in child_start_i..child_start_i + 4 {
-                dfs_stack.push(child_i);
+                self.dfs_stack.push(child_i);
             }
         }
 
@@ -218,12 +225,10 @@ impl QuadTree {
     pub fn get_grav_force(&mut self, pos: Vec2) -> Vec2 {
         let mut force = Vec2::zero();
         // let mut dfs_stack = vec![0];
-        self.dfs_stack.clear();
-        self.dfs_stack.push(0);
 
-        while !self.dfs_stack.is_empty() {
-            let node_i = self.dfs_stack.pop().unwrap();
+        let mut node_i = 0;
 
+        loop {
             let curr_node = &self.stack[node_i];
 
             let delta = curr_node.center_mass - pos;
@@ -231,6 +236,10 @@ impl QuadTree {
             let distance_squared = delta.length_squared();
 
             if distance_squared < EPS_SQUARED {
+                node_i = curr_node.next;
+                if node_i == 0 {
+                    break;
+                }
                 continue;
             }
 
@@ -239,10 +248,12 @@ impl QuadTree {
                 let denom = (distance_squared + EPS_SQUARED) * distance_squared.sqrt();
 
                 force += delta * (curr_node.total_mass / denom);
-            } else {
-                for child_i in curr_node.children..curr_node.children + 4 {
-                    self.dfs_stack.push(child_i);
+                if curr_node.next == 0 {
+                    break;
                 }
+                node_i = curr_node.next
+            } else {
+                node_i = curr_node.children;
             }
         }
 

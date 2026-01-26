@@ -153,17 +153,17 @@ impl Simulation {
                 self.container.construct_quadtree();
                 self.container.quadtree.propogate();
 
-                let start_time = Instant::now();
                 self.container.interparticle_gravity();
-                println!("{:?}", start_time.elapsed());
                 // self.container.interparticle_gravity_quadratic();
 
+                // let start_time = Instant::now();
                 for i in 0..self.sim_info.n_collision_steps {
                     // self.container.construct_quadtree();
                     // self.container
                     //     .particle_collisions_quadratic(self.sim_info.sub_step_dt);
                     self.container.particle_collision(self.sim_info.sub_step_dt);
                 }
+                // println!("{:?}", start_time.elapsed());
 
                 self.container
                     .container_collisions(self.sim_info.sub_step_dt);
