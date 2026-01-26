@@ -31,8 +31,16 @@ impl Container {
 
     pub fn add_particle(&mut self) {
         let mut new_particle = Particle::new();
-        let random_pos = Vec2::rand_uniform();
+        let mut random_pos = Vec2::rand_uniform();
+        
+        let spawn_radius = 0.7;
+        
+        while random_pos.length_squared() > spawn_radius * spawn_radius{
+            random_pos = Vec2::rand_uniform();
+        }
+
         new_particle.set_pos(random_pos * 0.7);
+
         new_particle.set_vel(random_pos.perp().normalize() * 0.0001);
         new_particle.set_density(1.0);
         self.particles.push(new_particle);

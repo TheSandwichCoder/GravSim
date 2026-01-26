@@ -40,6 +40,10 @@ def screen_to_glob(pos):
 
     return (norm_coord - pygame.Vector2(0.5, 0.5)) * 2
 
+def can_cull(pos):
+    return pos.x < -1 or pos.x > 1 or pos.y < -1 or pos.y > 1
+        
+
 is_paused = False
 
 random_colors = [(random.randint(0, 255),random.randint(0, 255), random.randint(0, 255)) for i in range(20000)]
@@ -62,7 +66,7 @@ speed_mode = True
 marked_pos = pygame.Vector2(0, 0)
 temp_camera_pos = pygame.Vector2(0, 0)
 
-circle_radius = 0.0002
+circle_radius = 0.0001
 
 default_size = max(WIDTH * circle_radius * 0.5, 1.0)
 
@@ -156,13 +160,24 @@ while running:
 
         color_draw = (200, 20, 20)
 
-        if speed_mode:
-            speed_gradient = min(float(pos[2]) * 255 * 2000, 225) + 30
-            color_draw = (speed_gradient, ) * 3
+        # if speed_mode:
+        #     speed_gradient = min(float(pos[2]) * 255 * 2000, 225) + 30
+        #     color_draw = (speed_gradient, ) * 3
 
         # print(color_draw)
+        draw_pos = (pygame.Vector2(float(pos[0]), float(pos[1])) - camera_offset) * true_zoom_val
+        if can_cull(draw_pos):
+            continue
+        # if glob_to_screen() 
+        draw_size = max(default_size, WIDTH * circle_radius * 0.5 * true_zoom_val)
 
-        pygame.draw.circle(screen, color_draw, glob_to_screen((pygame.Vector2(float(pos[0]), float(pos[1])) - camera_offset) * true_zoom_val), max(default_size, WIDTH * circle_radius * 0.5 * true_zoom_val))
+        if draw_size == 1:
+            # print(color_draw, glob_to_screen(draw_pos))
+            screen_draw_pos = glob_to_screen(draw_pos)
+            screen.set_at((int(screen_draw_pos.x), int(screen_draw_pos.y)), color_draw)
+
+        else:
+            pygame.draw.circle(screen, color_draw, glob_to_screen(draw_pos), draw_size)
 
     line_sz=  0.02
     line_thick = 2

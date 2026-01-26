@@ -21,7 +21,7 @@ impl Particle {
             prev_acc: Vec2::zero(),
             acc: Vec2::zero(),
             mass: 1.0,
-            radius: 0.0002,
+            radius: 0.0001,
             idx: 0,
         };
     }
