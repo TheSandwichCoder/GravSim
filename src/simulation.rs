@@ -1,6 +1,7 @@
 use crate::functions::show_progress;
 use crate::particle::*;
 use crate::particle_container::*;
+use crate::progress_bar::ProgressBar;
 use crate::vector::*;
 use std::time::Instant;
 
@@ -10,6 +11,7 @@ pub struct SimulationSpecs {
     sim_time: f32, // ms
     n_sub_steps: u32,
     n_collision_steps: u32,
+    n_update_cache_steps: u32,
     n_particles: u32,
     is_recording: bool,
 
@@ -25,6 +27,7 @@ impl SimulationSpecs {
             sim_time: 10.0,
             n_sub_steps: 5,
             n_collision_steps: 3,
+            n_update_cache_steps: 1,
             n_particles: 100,
             is_recording: false,
 
@@ -55,6 +58,14 @@ impl SimulationSpecs {
         self.n_collision_steps = coll_steps;
     }
 
+    pub fn set_update_cache_steps(&mut self, coll_steps: u32) {
+        self.n_update_cache_steps = coll_steps;
+    }
+
+    pub fn set_update_cache_ratio(&mut self, ratio: f32) {
+        self.n_update_cache_steps = (self.n_collision_steps as f32 * (1.0 - ratio)) as u32;
+    }
+
     pub fn set_framerate(&mut self, fr: u32) {
         self.dt = 1.0 / fr as f32;
         self.update_dependents();
@@ -81,6 +92,7 @@ impl SimulationRecorder {
 
     pub fn record_step(&mut self, container: &Container) {
         let mut particle_step: Vec<ParticleData> = Vec::new();
+
         for particle in &container.particles {
             particle_step.push(ParticleData::new(&particle));
         }
@@ -91,8 +103,10 @@ impl SimulationRecorder {
         let mut recording_string = String::new();
         for particle_step in &self.data {
             for particle in &particle_step.particle_data {
-                recording_string
-                    .push_str(&format!("{} {},", particle.position.x, particle.position.y));
+                recording_string.push_str(&format!(
+                    "{} {} {},",
+                    particle.position.x, particle.position.y, particle.speed
+                ));
             }
             recording_string.push_str("\n");
         }
@@ -140,6 +154,8 @@ impl Simulation {
             self.container.add_particle();
         }
 
+        let mut progress_bar = ProgressBar::new(self.sim_info.n_steps);
+
         for sim_step in 0..self.sim_info.n_steps {
             for sub_step in 0..self.sim_info.n_sub_steps {
                 // self.container.apply_gravity();
@@ -150,19 +166,20 @@ impl Simulation {
                 self.container
                     .container_collisions(self.sim_info.sub_step_dt);
 
+                // println!("A");
                 self.container.construct_quadtree();
+                // println!("B");
                 self.container.quadtree.propogate();
 
                 self.container.interparticle_gravity();
                 // self.container.interparticle_gravity_quadratic();
 
                 // let start_time = Instant::now();
-                for i in 0..self.sim_info.n_collision_steps {
-                    // self.container.construct_quadtree();
-                    // self.container
-                    //     .particle_collisions_quadratic(self.sim_info.sub_step_dt);
-                    self.container.particle_collision(self.sim_info.sub_step_dt);
-                }
+                self.container.particle_collision(
+                    self.sim_info.n_collision_steps,
+                    self.sim_info.n_update_cache_steps,
+                    self.sim_info.sub_step_dt,
+                );
                 // println!("{:?}", start_time.elapsed());
 
                 self.container
@@ -172,7 +189,9 @@ impl Simulation {
                 self.sim_recorder.record_step(&self.container);
             }
 
-            show_progress(sim_step as usize, 0, self.sim_info.n_steps as usize);
+            progress_bar.increment();
+            progress_bar.refresh();
+            // show_progress(sim_step as usize, 0, self.sim_info.n_steps as usize);
         }
         println!("SIM END");
     }

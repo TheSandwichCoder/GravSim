@@ -42,7 +42,7 @@ def screen_to_glob(pos):
 
 is_paused = False
 
-random_colors = [(random.randint(0, 255),random.randint(0, 255), random.randint(0, 255)) for i in range(2000)]
+random_colors = [(random.randint(0, 255),random.randint(0, 255), random.randint(0, 255)) for i in range(20000)]
 color_track = 0
 
 zoom_val = 0.0
@@ -55,13 +55,17 @@ mouse_is_down = False
 thing_pressed = False
 space_pressed = False
 just_scrolled = False
+time_step_pressed = False
+
+speed_mode = True
 
 marked_pos = pygame.Vector2(0, 0)
 temp_camera_pos = pygame.Vector2(0, 0)
 
-circle_radius = 0.002
+circle_radius = 0.0002
 
 default_size = max(WIDTH * circle_radius * 0.5, 1.0)
+
 
 while running:
     keys = pygame.key.get_pressed()
@@ -94,13 +98,23 @@ while running:
 
     else:
         thing_pressed = True
+
+    if keys[pygame.K_LSHIFT]:
+        time_step_pressed = True
    
     if keys[pygame.K_LEFT]:
-        frame_i -= 1
-        frame_i %= n_lines
-    if keys[pygame.K_RIGHT]:
-        frame_i += 1
-        frame_i %= n_lines
+        if time_step_pressed:
+            frame_i -= 1
+            frame_i %= n_lines
+        time_step_pressed = False
+
+    elif keys[pygame.K_RIGHT]:
+        if time_step_pressed:
+            frame_i += 1
+            frame_i %= n_lines
+        time_step_pressed = False
+    else:
+        time_step_pressed = True
 
     if keys[pygame.K_r]:
         frame_i = 0
@@ -141,6 +155,12 @@ while running:
         pos = value.split()
 
         color_draw = (200, 20, 20)
+
+        if speed_mode:
+            speed_gradient = min(float(pos[2]) * 255 * 2000, 225) + 30
+            color_draw = (speed_gradient, ) * 3
+
+        # print(color_draw)
 
         pygame.draw.circle(screen, color_draw, glob_to_screen((pygame.Vector2(float(pos[0]), float(pos[1])) - camera_offset) * true_zoom_val), max(default_size, WIDTH * circle_radius * 0.5 * true_zoom_val))
 

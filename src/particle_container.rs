@@ -6,6 +6,7 @@ use crate::vector::*;
 
 pub struct Container {
     pub particles: Vec<Particle>,
+    pub cached_potential_collisions: Vec<Vec<usize>>,
     pub quadtree: QuadTree,
 }
 
@@ -13,6 +14,7 @@ impl Container {
     pub fn new() -> Container {
         return Container {
             particles: Vec::new(),
+            cached_potential_collisions: Vec::new(),
             quadtree: QuadTree::new(),
         };
     }
@@ -30,8 +32,9 @@ impl Container {
     pub fn add_particle(&mut self) {
         let mut new_particle = Particle::new();
         let random_pos = Vec2::rand_uniform();
-        new_particle.set_pos(random_pos);
-        // new_particle.set_vel(random_pos.perp() * 0.01);
+        new_particle.set_pos(random_pos * 0.7);
+        new_particle.set_vel(random_pos.perp().normalize() * 0.0001);
+        new_particle.set_density(1.0);
         self.particles.push(new_particle);
     }
 
@@ -87,20 +90,31 @@ impl Container {
         }
     }
 
-    pub fn particle_collision(&mut self, dt: f32) {
+    pub fn particle_collision(
+        &mut self,
+        n_collision_steps: u32,
+        n_update_cache_steps: u32,
+        dt: f32,
+    ) {
         let n_particles = self.particles.len();
 
-        for pt1_i in 0..n_particles {
-            let potential_collisions = self.quadtree.idx_bound(&self.particles[pt1_i].get_bound());
-            // println!("{:?}", potential_collisions);
-            // println!("{}", potential_collisions.len)
-
-            for pt2_i in potential_collisions {
-                if pt1_i == pt2_i {
-                    continue;
+        for coll_step_i in 0..n_collision_steps {
+            if coll_step_i % n_update_cache_steps == 0 {
+                self.cached_potential_collisions.clear();
+                for pt1_i in 0..n_particles {
+                    self.cached_potential_collisions
+                        .push(self.quadtree.idx_bound(&self.particles[pt1_i].get_bound()));
                 }
+            }
 
-                self.resolve_collision(pt1_i, pt2_i);
+            for pt1_i in 0..n_particles {
+                for pt2_ii in 0..self.cached_potential_collisions[pt1_i].len() {
+                    if pt1_i == self.cached_potential_collisions[pt1_i][pt2_ii] {
+                        continue;
+                    }
+
+                    self.resolve_collision(pt1_i, self.cached_potential_collisions[pt1_i][pt2_ii]);
+                }
             }
         }
     }

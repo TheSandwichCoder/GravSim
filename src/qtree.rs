@@ -70,7 +70,8 @@ impl QNode {
 
     pub fn set_particle(&mut self, particles: &Vec<Particle>, pt_idx: i32) {
         self.particle_contained = pt_idx;
-        self.total_mass = particles[pt_idx as usize].mass;
+
+        self.total_mass += particles[pt_idx as usize].mass;
         self.center_mass = particles[pt_idx as usize].pos;
     }
 }
@@ -97,6 +98,9 @@ impl QuadTree {
     pub fn subdivide_node(&mut self, node_i: usize) {
         self.stack[node_i].is_leaf = false;
         self.stack[node_i].particle_contained = -1;
+        self.stack[node_i].total_mass = 0.0;
+        self.stack[node_i].center_mass = Vec2::zero();
+
         let new_bound_dim = self.stack[node_i].bound.get_dim() * 0.5;
 
         let last_idx = self.stack.len();
@@ -165,21 +169,35 @@ impl QuadTree {
             }
         }
 
+        if (curr_node_i == 0 && !self.stack[curr_node_i].is_leaf) {
+            println!("");
+
+            for child_i in child_start_i..child_start_i + 4 {
+                println!(
+                    "{} {}",
+                    self.stack[node_i].bound.bot_left, self.stack[node_i].bound.top_right
+                );
+            }
+
+            println!("{}", pos);
+        }
+
         return curr_node_i;
     }
 
     pub fn idx_bound(&mut self, other_bound: &Bound) -> Vec<usize> {
         let mut close_children: Vec<usize> = Vec::new();
 
-        self.dfs_stack.clear();
-        self.dfs_stack.push(0);
+        let mut node_i = 1;
 
-        while !self.dfs_stack.is_empty() {
-            let node_i = self.dfs_stack.pop().unwrap();
-
+        loop {
+            if node_i == 0 {
+                break;
+            }
             let curr_node = &self.stack[node_i];
 
             if !curr_node.bound.is_overlap(other_bound) {
+                node_i = curr_node.next;
                 continue;
             }
 
@@ -187,13 +205,11 @@ impl QuadTree {
                 if curr_node.particle_contained != -1 {
                     close_children.push(curr_node.particle_contained as usize);
                 }
+                node_i = curr_node.next;
                 continue;
             }
 
-            let child_start_i = curr_node.children;
-            for child_i in child_start_i..child_start_i + 4 {
-                self.dfs_stack.push(child_i);
-            }
+            node_i = curr_node.children
         }
 
         return close_children;
@@ -226,9 +242,12 @@ impl QuadTree {
         let mut force = Vec2::zero();
         // let mut dfs_stack = vec![0];
 
-        let mut node_i = 0;
+        let mut node_i = 1;
 
         loop {
+            if node_i == 0 {
+                break;
+            }
             let curr_node = &self.stack[node_i];
 
             let delta = curr_node.center_mass - pos;
@@ -237,9 +256,6 @@ impl QuadTree {
 
             if distance_squared < EPS_SQUARED {
                 node_i = curr_node.next;
-                if node_i == 0 {
-                    break;
-                }
                 continue;
             }
 
@@ -248,9 +264,6 @@ impl QuadTree {
                 let denom = (distance_squared + EPS_SQUARED) * distance_squared.sqrt();
 
                 force += delta * (curr_node.total_mass / denom);
-                if curr_node.next == 0 {
-                    break;
-                }
                 node_i = curr_node.next
             } else {
                 node_i = curr_node.children;
@@ -263,6 +276,7 @@ impl QuadTree {
     pub fn add_particle(&mut self, particle_vec: &Vec<Particle>, particle_idx: usize) {
         let mut curr_node_i = self.idx_pos(particle_vec[particle_idx].pos);
 
+        let mut counter = 0;
         // base check
         if self.stack[curr_node_i].particle_contained == -1 {
             self.stack[curr_node_i].set_particle(particle_vec, particle_idx as i32);
@@ -276,9 +290,9 @@ impl QuadTree {
             loop {
                 let other_particle_contained = self.stack[curr_node_i].particle_contained;
 
-                // depth 30 is just a safety measure to cut off recursion
+                // depth 18 is just a safety measure to cut off recursion (also prevent floating point errors)
                 // when this happens, we essentially delete a particle but I think it is fine
-                if other_particle_contained == -1 || self.stack[curr_node_i].depth >= 30 {
+                if other_particle_contained == -1 || self.stack[curr_node_i].depth >= 18 {
                     self.stack[curr_node_i].set_particle(particle_vec, particle_idx as i32);
                     break;
                 } else {
@@ -289,6 +303,10 @@ impl QuadTree {
                         .set_particle(particle_vec, other_particle_contained);
 
                     curr_node_i = self.idx_pos_single(curr_node_i, particle1_pos);
+                }
+                counter += 1;
+                if counter > 50 {
+                    println!("asdjfkhasdkjf");
                 }
             }
         }

@@ -10,6 +10,7 @@ pub struct Particle {
     pub acc: Vec2,
     pub mass: f32,
     pub radius: f32,
+    pub idx: u32, // used for recording
 }
 
 impl Particle {
@@ -20,13 +21,18 @@ impl Particle {
             prev_acc: Vec2::zero(),
             acc: Vec2::zero(),
             mass: 1.0,
-            radius: 0.002,
+            radius: 0.0002,
+            idx: 0,
         };
     }
 
     pub fn reset_acc(&mut self) {
         self.prev_acc = self.acc;
         self.acc = Vec2::zero();
+    }
+
+    pub fn set_density(&mut self, density: f32) {
+        self.mass = self.radius * self.radius * self.radius * self.radius * density;
     }
 
     pub fn integrate(&mut self, dt: f32) {
@@ -41,6 +47,13 @@ impl Particle {
         return self.pos - self.prev_pos;
     }
 
+    pub fn get_speed(&self) -> f32 {
+        let dx = self.pos.x - self.prev_pos.x;
+        let dy = self.pos.x - self.prev_pos.x;
+
+        return (dx * dx + dy * dy).sqrt();
+    }
+
     pub fn set_pos(&mut self, new_pos: Vec2) {
         self.pos = new_pos;
         self.prev_pos = new_pos;
@@ -50,12 +63,16 @@ impl Particle {
         self.prev_pos = self.pos - new_vel;
     }
 
+    pub fn set_idx(&mut self, idx: u32) {
+        self.idx = idx;
+    }
+
     pub fn apply_force(&mut self, force: Vec2) {
         self.acc += force / self.mass;
     }
 
     pub fn get_bound(&self) -> Bound {
-        let offset = Vec2::new(self.radius, self.radius) * 2.0;
+        let offset = Vec2::new(self.radius, self.radius) * 4.0;
 
         return Bound::new(self.pos - offset, self.pos + offset);
     }
@@ -81,12 +98,14 @@ impl fmt::Display for Particle {
 
 pub struct ParticleData {
     pub position: Vec2,
+    pub speed: f32,
 }
 
 impl ParticleData {
     pub fn new(particle: &Particle) -> ParticleData {
         return ParticleData {
             position: particle.pos,
+            speed: particle.get_speed(),
         };
     }
 }
