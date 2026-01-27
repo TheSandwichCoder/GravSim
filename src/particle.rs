@@ -10,7 +10,7 @@ pub struct Particle {
     pub acc: Vec2,
     pub mass: f32,
     pub radius: f32,
-    pub idx: u32, // used for recording
+    pub n_collisions: u32,
 }
 
 impl Particle {
@@ -22,7 +22,7 @@ impl Particle {
             acc: Vec2::zero(),
             mass: 1.0,
             radius: 0.0001,
-            idx: 0,
+            n_collisions: 0,
         };
     }
 
@@ -63,10 +63,6 @@ impl Particle {
         self.prev_pos = self.pos - new_vel;
     }
 
-    pub fn set_idx(&mut self, idx: u32) {
-        self.idx = idx;
-    }
-
     pub fn apply_force(&mut self, force: Vec2) {
         self.acc += force / self.mass;
     }
@@ -99,6 +95,7 @@ impl fmt::Display for Particle {
 pub struct ParticleData {
     pub position: Vec2,
     pub speed: f32,
+    pub n_collisions: u32,
 }
 
 impl ParticleData {
@@ -106,6 +103,7 @@ impl ParticleData {
         return ParticleData {
             position: particle.pos,
             speed: particle.get_speed(),
+            n_collisions: particle.n_collisions,
         };
     }
 }

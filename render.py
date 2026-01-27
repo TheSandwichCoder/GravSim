@@ -60,8 +60,10 @@ thing_pressed = False
 space_pressed = False
 just_scrolled = False
 time_step_pressed = False
+s_button_pressed = False
 
-speed_mode = True
+n_display_modes = 3
+display_mode = 0
 
 marked_pos = pygame.Vector2(0, 0)
 temp_camera_pos = pygame.Vector2(0, 0)
@@ -130,6 +132,14 @@ while running:
     else:
         space_pressed = True
 
+    if keys[pygame.K_q]:
+        if s_button_pressed:
+            display_mode += 1
+            display_mode %= n_display_modes
+        s_button_pressed=  False
+    else:
+        s_button_pressed = True
+
     if not is_paused:
         frame_i += 1
         frame_i %= n_lines
@@ -160,9 +170,12 @@ while running:
 
         color_draw = (200, 20, 20)
 
-        # if speed_mode:
-        #     speed_gradient = min(float(pos[2]) * 255 * 2000, 225) + 30
-        #     color_draw = (speed_gradient, ) * 3
+        if display_mode == 1:
+            speed_gradient = min(float(pos[2]) * 255 * 2000, 225) + 30
+            color_draw = (speed_gradient, ) * 3
+        elif display_mode == 2:
+            collision_gradient = min(float(pos[3]) / 128 * 255, 225) + 30
+            color_draw = (collision_gradient, ) * 3
 
         # print(color_draw)
         draw_pos = (pygame.Vector2(float(pos[0]), float(pos[1])) - camera_offset) * true_zoom_val

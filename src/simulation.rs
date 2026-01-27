@@ -58,8 +58,8 @@ impl SimulationSpecs {
         self.n_collision_steps = coll_steps;
     }
 
-    pub fn set_update_cache_steps(&mut self, coll_steps: u32) {
-        self.n_update_cache_steps = coll_steps;
+    pub fn set_update_cache_steps(&mut self, cache_steps: u32) {
+        self.n_update_cache_steps = cache_steps;
     }
 
     pub fn set_update_cache_ratio(&mut self, ratio: f32) {
@@ -102,10 +102,10 @@ impl SimulationRecorder {
     pub fn export_recording(&self, path: &str) {
         let mut recording_string = String::new();
         for particle_step in &self.data {
-            for particle in &particle_step.particle_data {
+            for data in &particle_step.particle_data {
                 recording_string.push_str(&format!(
-                    "{} {} {},",
-                    particle.position.x, particle.position.y, particle.speed
+                    "{} {} {} {},",
+                    data.position.x, data.position.y, data.speed, data.n_collisions
                 ));
             }
             recording_string.push_str("\n");
@@ -167,20 +167,20 @@ impl Simulation {
                     .container_collisions(self.sim_info.sub_step_dt);
 
                 // println!("A");
+                // let start_time = Instant::now();
                 self.container.construct_quadtree();
                 // println!("B");
-                self.container.quadtree.propogate();
+                self.container.quadtree.propogate_mass();
 
                 self.container.interparticle_gravity();
                 // self.container.interparticle_gravity_quadratic();
+                // println!("{:?}", start_time.elapsed());
 
-                // let start_time = Instant::now();
                 self.container.particle_collision(
                     self.sim_info.n_collision_steps,
                     self.sim_info.n_update_cache_steps,
                     self.sim_info.sub_step_dt,
                 );
-                // println!("{:?}", start_time.elapsed());
 
                 self.container
                     .container_collisions(self.sim_info.sub_step_dt);

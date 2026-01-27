@@ -169,25 +169,23 @@ impl QuadTree {
             }
         }
 
-        if (curr_node_i == 0 && !self.stack[curr_node_i].is_leaf) {
-            println!("");
+        // if (curr_node_i == 0 && !self.stack[curr_node_i].is_leaf) {
+        //     println!("");
 
-            for child_i in child_start_i..child_start_i + 4 {
-                println!(
-                    "{} {}",
-                    self.stack[node_i].bound.bot_left, self.stack[node_i].bound.top_right
-                );
-            }
+        //     for child_i in child_start_i..child_start_i + 4 {
+        //         println!(
+        //             "{} {}",
+        //             self.stack[node_i].bound.bot_left, self.stack[node_i].bound.top_right
+        //         );
+        //     }
 
-            println!("{}", pos);
-        }
+        //     println!("{}", pos);
+        // }
 
         return curr_node_i;
     }
 
-    pub fn idx_bound(&mut self, other_bound: &Bound) -> Vec<usize> {
-        let mut close_children: Vec<usize> = Vec::new();
-
+    pub fn idx_bound(&mut self, other_bound: &Bound, add_vec: &mut Vec<usize>) {
         let mut node_i = 1;
 
         loop {
@@ -203,7 +201,7 @@ impl QuadTree {
 
             if curr_node.is_leaf {
                 if curr_node.particle_contained != -1 {
-                    close_children.push(curr_node.particle_contained as usize);
+                    add_vec.push(curr_node.particle_contained as usize);
                 }
                 node_i = curr_node.next;
                 continue;
@@ -211,11 +209,13 @@ impl QuadTree {
 
             node_i = curr_node.children
         }
-
-        return close_children;
     }
 
-    pub fn propogate(&mut self) {
+    // pub fn propogate_collision(){
+
+    // }
+
+    pub fn propogate_mass(&mut self) {
         for nd_i in (0..self.stack.len()).rev() {
             if self.stack[nd_i].is_leaf {
                 continue;
