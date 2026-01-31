@@ -5,6 +5,9 @@ use crate::progress_bar::ProgressBar;
 use crate::vector::*;
 use std::time::Instant;
 
+pub const UNIFORM_DISTRIBUTION: u32 = 0;
+pub const NORMAL_DISTRIBUTION: u32 = 1;
+
 #[derive(Clone)]
 pub struct SimulationSpecs {
     dt: f32,
@@ -13,6 +16,8 @@ pub struct SimulationSpecs {
     n_collision_steps: u32,
     n_update_cache_steps: u32,
     n_particles: u32,
+    particle_distribution: u32,
+    spawn_radius: f32,
     is_recording: bool,
 
     // dependent variables
@@ -29,11 +34,37 @@ impl SimulationSpecs {
             n_collision_steps: 3,
             n_update_cache_steps: 1,
             n_particles: 100,
+            particle_distribution: UNIFORM_DISTRIBUTION,
+            spawn_radius: 0.5,
             is_recording: false,
 
             n_steps: (10.0 / 0.1) as u32,
             sub_step_dt: 0.1 / 5.0,
         };
+    }
+
+    pub fn get_n_particles(&self) -> u32 {
+        return self.n_particles;
+    }
+
+    pub fn set_distribution(&mut self, new_dist: u32) {
+        self.particle_distribution = new_dist;
+    }
+
+    pub fn set_spawn_radius(&mut self, radius: f32) {
+        self.spawn_radius = radius;
+    }
+
+    pub fn get_spawn_radius(&self) -> f32 {
+        return self.spawn_radius;
+    }
+
+    pub fn get_spawn_radius_squared(&self) -> f32 {
+        return self.spawn_radius * self.spawn_radius;
+    }
+
+    pub fn get_distribution(&self) -> u32 {
+        return self.particle_distribution;
     }
 
     pub fn update_dependents(&mut self) {
@@ -90,17 +121,23 @@ impl SimulationRecorder {
         return SimulationRecorder { data: Vec::new() };
     }
 
-    pub fn record_step(&mut self, container: &Container) {
-        let mut particle_step: Vec<ParticleData> = Vec::new();
-
-        for particle in &container.particles {
-            particle_step.push(ParticleData::new(&particle));
+    pub fn record_step(&mut self, container: &mut Container, n_sub_steps: u32) {
+        for particle in &mut container.particles {
+            particle.n_total_collisions /= n_sub_steps;
         }
         self.data.push(RecorderStep::new(&container));
+        for particle in &mut container.particles {
+            particle.reset_collisions();
+        }
     }
 
     pub fn export_recording(&self, path: &str) {
         let mut recording_string = String::new();
+
+        println!("EXPORTING RECORDING");
+
+        let mut progress_bar = ProgressBar::new(self.data.len() as u32);
+        progress_bar.refresh();
         for particle_step in &self.data {
             for data in &particle_step.particle_data {
                 recording_string.push_str(&format!(
@@ -109,8 +146,10 @@ impl SimulationRecorder {
                 ));
             }
             recording_string.push_str("\n");
+            progress_bar.increment();
+            progress_bar.refresh();
         }
-        println!("");
+        println!("\nSIM END");
 
         std::fs::write(path, recording_string).expect("Unable to write file");
     }
@@ -150,31 +189,23 @@ impl Simulation {
     pub fn run(&mut self) {
         println!("SIM START");
 
-        for i in 0..self.sim_info.n_particles {
-            self.container.add_particle();
-        }
+        self.container.init_particles(&self.sim_info);
 
         let mut progress_bar = ProgressBar::new(self.sim_info.n_steps);
+        progress_bar.refresh();
 
-        for sim_step in 0..self.sim_info.n_steps {
-            for sub_step in 0..self.sim_info.n_sub_steps {
-                // self.container.apply_gravity();
-
+        for _sim_step_i in 0..self.sim_info.n_steps {
+            for _sub_step_i in 0..self.sim_info.n_sub_steps {
                 self.container
                     .integrate_particles(self.sim_info.sub_step_dt);
 
                 self.container
                     .container_collisions(self.sim_info.sub_step_dt);
 
-                // println!("A");
-                // let start_time = Instant::now();
                 self.container.construct_quadtree();
-                // println!("B");
                 self.container.quadtree.propogate_mass();
 
                 self.container.interparticle_gravity();
-                // self.container.interparticle_gravity_quadratic();
-                // println!("{:?}", start_time.elapsed());
 
                 self.container.particle_collision(
                     self.sim_info.n_collision_steps,
@@ -185,14 +216,15 @@ impl Simulation {
                 self.container
                     .container_collisions(self.sim_info.sub_step_dt);
             }
-            if (self.sim_info.is_recording) {
-                self.sim_recorder.record_step(&self.container);
+
+            if self.sim_info.is_recording {
+                self.sim_recorder
+                    .record_step(&mut self.container, self.sim_info.n_sub_steps);
             }
 
             progress_bar.increment();
             progress_bar.refresh();
-            // show_progress(sim_step as usize, 0, self.sim_info.n_steps as usize);
         }
-        println!("SIM END");
+        println!("\nSIM END");
     }
 }

@@ -11,6 +11,7 @@ pub struct Particle {
     pub mass: f32,
     pub radius: f32,
     pub n_collisions: u32,
+    pub n_total_collisions: u32,
 }
 
 impl Particle {
@@ -23,7 +24,13 @@ impl Particle {
             mass: 1.0,
             radius: 0.0001,
             n_collisions: 0,
+            n_total_collisions: 0,
         };
+    }
+
+    pub fn reset_collisions(&mut self) {
+        self.n_collisions = 0;
+        self.n_total_collisions = 0;
     }
 
     pub fn reset_acc(&mut self) {
@@ -36,7 +43,12 @@ impl Particle {
     }
 
     pub fn integrate(&mut self, dt: f32) {
-        let vel = (self.pos - self.prev_pos) * DAMPING;
+        let mut vel = (self.pos - self.prev_pos);
+
+        if vel.length_squared() > MAX_SPEED_SQUARED {
+            vel = vel.normalize() * MAX_SPEED;
+        }
+
         let new_pos = self.pos + vel + self.acc * (dt * dt);
         self.prev_pos = self.pos;
         self.pos = new_pos;
@@ -49,7 +61,7 @@ impl Particle {
 
     pub fn get_speed(&self) -> f32 {
         let dx = self.pos.x - self.prev_pos.x;
-        let dy = self.pos.x - self.prev_pos.x;
+        let dy = self.pos.y - self.prev_pos.y;
 
         return (dx * dx + dy * dy).sqrt();
     }
@@ -103,7 +115,7 @@ impl ParticleData {
         return ParticleData {
             position: particle.pos,
             speed: particle.get_speed(),
-            n_collisions: particle.n_collisions,
+            n_collisions: particle.n_total_collisions,
         };
     }
 }

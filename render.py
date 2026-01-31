@@ -23,7 +23,7 @@ running = True
 dt = 0.01
 
 frame_i = 0
-f = open("simulations/simulation_output.txt", 'r')
+f = open("simulations/50k.txt", 'r')
 file_lines = f.readlines()
 f.close()
 
@@ -105,7 +105,7 @@ while running:
     else:
         thing_pressed = True
 
-    if keys[pygame.K_LSHIFT]:
+    if keys[pygame.K_LSHIFT] or keys[pygame.K_RSHIFT]:
         time_step_pressed = True
    
     if keys[pygame.K_LEFT]:
@@ -121,6 +121,11 @@ while running:
         time_step_pressed = False
     else:
         time_step_pressed = True
+
+    if keys[pygame.K_p]:
+        frame_i += 10
+    if keys[pygame.K_o]:
+        frame_i -= 10
 
     if keys[pygame.K_r]:
         frame_i = 0
@@ -142,7 +147,7 @@ while running:
 
     if not is_paused:
         frame_i += 1
-        frame_i %= n_lines
+    frame_i %= n_lines
 
     values = file_lines[frame_i].strip().split(",")
 
@@ -171,7 +176,7 @@ while running:
         color_draw = (200, 20, 20)
 
         if display_mode == 1:
-            speed_gradient = min(float(pos[2]) * 255 * 2000, 225) + 30
+            speed_gradient = min(float(pos[2]) * 255 * 10000, 225) + 30
             color_draw = (speed_gradient, ) * 3
         elif display_mode == 2:
             collision_gradient = min(float(pos[3]) / 128 * 255, 225) + 30

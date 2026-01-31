@@ -7,3 +7,6 @@ pub const THETA_SQUARED: f32 = THETA * THETA;
 
 pub const EPS: f32 = 0.000001;
 pub const EPS_SQUARED: f32 = EPS * EPS;
+
+pub const MAX_SPEED: f32 = 0.001;
+pub const MAX_SPEED_SQUARED: f32 = MAX_SPEED * MAX_SPEED;

@@ -1,7 +1,13 @@
+use std::thread::spawn;
+
+use rand::random;
+
 use crate::constants::*;
 use crate::functions::*;
 use crate::particle::*;
 use crate::qtree::QuadTree;
+use crate::simulation::NORMAL_DISTRIBUTION;
+use crate::simulation::SimulationSpecs;
 use crate::vector::*;
 
 pub struct Container {
@@ -29,19 +35,57 @@ impl Container {
         }
     }
 
+    pub fn init_particles(&mut self, info: &SimulationSpecs) {
+        let spawn_radius = info.get_spawn_radius();
+        let spawn_radius_squared = info.get_spawn_radius_squared();
+
+        for _particle_i in 0..info.get_n_particles() {
+            let mut new_particle = Particle::new();
+
+            let mut random_pos = Vec2::zero();
+            let distribution = info.get_distribution();
+            if distribution == NORMAL_DISTRIBUTION {
+                random_pos = Vec2::rand_normal() * spawn_radius;
+            } else {
+                random_pos = Vec2::rand_uniform() * spawn_radius;
+            }
+
+            while random_pos.length_squared() > spawn_radius_squared {
+                if distribution == NORMAL_DISTRIBUTION {
+                    random_pos = Vec2::rand_normal() * spawn_radius;
+                } else {
+                    random_pos = Vec2::rand_uniform() * spawn_radius;
+                }
+            }
+
+            new_particle.set_pos(random_pos);
+            self.particles.push(new_particle);
+            self.cached_potential_collisions.push(Vec::new());
+        }
+
+        self.construct_quadtree();
+        self.particle_collision(5, 1, 1.0);
+
+        for particle in &mut self.particles {
+            particle.set_vel(particle.pos.perp() * 0.0001);
+        }
+    }
+
     pub fn add_particle(&mut self) {
         let mut new_particle = Particle::new();
         let mut random_pos = Vec2::rand_uniform();
 
-        let spawn_radius = 0.1;
+        let spawn_radius = 0.5;
 
         while random_pos.length_squared() > spawn_radius * spawn_radius {
             random_pos = Vec2::rand_uniform();
         }
 
-        new_particle.set_pos(random_pos);
+        let length_ratio = random_pos.length();
 
-        // new_particle.set_vel(random_pos.perp().normalize() * 0.0001);
+        new_particle.set_pos(random_pos * length_ratio * length_ratio);
+
+        new_particle.set_vel(random_pos.perp() * 0.00003);
         new_particle.set_density(1.0);
         self.particles.push(new_particle);
         self.cached_potential_collisions.push(Vec::new());
@@ -99,6 +143,8 @@ impl Container {
 
             self.particles[pt1_i].n_collisions += 1;
             self.particles[pt2_i].n_collisions += 1;
+            self.particles[pt1_i].n_total_collisions += 1;
+            self.particles[pt2_i].n_total_collisions += 1;
         }
     }
 

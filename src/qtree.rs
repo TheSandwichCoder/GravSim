@@ -5,6 +5,7 @@ use crate::vector::Vec2;
 pub struct Bound {
     top_right: Vec2,
     bot_left: Vec2,
+    center: Vec2,
     size_squared: f32,
 }
 
@@ -14,6 +15,7 @@ impl Bound {
         return Bound {
             top_right: tr,
             bot_left: bl,
+            center: (tr + bl) * 0.5,
             size_squared: sz * sz,
         };
     }
@@ -32,6 +34,10 @@ impl Bound {
         }
 
         return true;
+    }
+
+    pub fn get_sector(&self, pos: Vec2) -> usize {
+        return ((pos.y > self.center.y) as usize) << 1 | (pos.x > self.center.x) as usize;
     }
 
     pub fn in_bounds(&self, pos: Vec2) -> bool {
@@ -144,30 +150,34 @@ impl QuadTree {
                 break;
             }
 
-            let child_start_i = self.stack[curr_node_i].children;
+            curr_node_i = self.idx_pos_single(curr_node_i, pos)
 
-            for child_i in child_start_i..child_start_i + 4 {
-                if self.stack[child_i].bound.in_bounds(pos) {
-                    curr_node_i = child_i;
-                    break;
-                }
-            }
+            // let child_start_i = self.stack[curr_node_i].children;
+
+            // for child_i in child_start_i..child_start_i + 4 {
+            //     if self.stack[child_i].bound.in_bounds(pos) {
+            //         curr_node_i = child_i;
+            //         break;
+            //     }
+            // }
         }
 
         return curr_node_i;
     }
 
     pub fn idx_pos_single(&self, node_i: usize, pos: Vec2) -> usize {
-        let mut curr_node_i = 0;
+        return self.stack[node_i].children + self.stack[node_i].bound.get_sector(pos);
 
-        let child_start_i = self.stack[node_i].children;
+        // let mut curr_node_i = 0;
 
-        for child_i in child_start_i..child_start_i + 4 {
-            if self.stack[child_i].bound.in_bounds(pos) {
-                curr_node_i = child_i;
-                break;
-            }
-        }
+        // let child_start_i = self.stack[node_i].children;
+
+        // for child_i in child_start_i..child_start_i + 4 {
+        //     if self.stack[child_i].bound.in_bounds(pos) {
+        //         curr_node_i = child_i;
+        //         break;
+        //     }
+        // }
 
         // if (curr_node_i == 0 && !self.stack[curr_node_i].is_leaf) {
         //     println!("");
@@ -182,7 +192,7 @@ impl QuadTree {
         //     println!("{}", pos);
         // }
 
-        return curr_node_i;
+        // return curr_node_i;
     }
 
     pub fn idx_bound(&mut self, other_bound: &Bound, add_vec: &mut Vec<usize>) {
@@ -255,6 +265,7 @@ impl QuadTree {
             let distance_squared = delta.length_squared();
 
             if distance_squared < EPS_SQUARED {
+                // println!("{} {} {}", delta, curr_node.center_mass, pos);
                 node_i = curr_node.next;
                 continue;
             }
@@ -264,7 +275,7 @@ impl QuadTree {
                 let denom = (distance_squared + EPS_SQUARED) * distance_squared.sqrt();
 
                 force += delta * (curr_node.total_mass / denom);
-                node_i = curr_node.next
+                node_i = curr_node.next;
             } else {
                 node_i = curr_node.children;
             }

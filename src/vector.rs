@@ -1,4 +1,6 @@
 use rand::Rng;
+use rand_distr::StandardNormal;
+
 use std::fmt;
 use std::ops::*;
 
@@ -39,11 +41,18 @@ impl Vec2 {
     }
 
     pub fn rand_uniform() -> Vec2 {
-        let mut rng_thing = rand::thread_rng();
+        let mut rng_thing = rand::rng();
 
-        let x: f32 = rng_thing.gen_range(-1.0..1.0);
-        let y: f32 = rng_thing.gen_range(-1.0..1.0);
+        let x: f32 = rng_thing.random_range(-1.0..1.0);
+        let y: f32 = rng_thing.random_range(-1.0..1.0);
         return Vec2::new(x, y);
+    }
+
+    pub fn rand_normal() -> Vec2 {
+        let x: f32 = rand::rng().sample(StandardNormal);
+        let y: f32 = rand::rng().sample(StandardNormal);
+
+        return Vec2::new(x, y) / 3.0;
     }
 }
 
