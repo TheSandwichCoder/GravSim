@@ -3,6 +3,7 @@ use crate::particle::*;
 use crate::particle_container::*;
 use crate::progress_bar::ProgressBar;
 use crate::vector::*;
+use crate::functions::*;
 use std::time::Instant;
 
 pub const UNIFORM_DISTRIBUTION: u32 = 0;
@@ -194,8 +195,11 @@ impl Simulation {
         let mut progress_bar = ProgressBar::new(self.sim_info.n_steps);
         progress_bar.refresh();
 
-        for _sim_step_i in 0..self.sim_info.n_steps {
+        for sim_step_i in 0..self.sim_info.n_steps {
+
+            self.container.particles.sort_unstable_by_key(|p| morton_key(p.pos));
             for _sub_step_i in 0..self.sim_info.n_sub_steps {
+                // let t1 = Instant::now();
                 self.container
                     .integrate_particles(self.sim_info.sub_step_dt);
 
@@ -215,6 +219,7 @@ impl Simulation {
 
                 self.container
                     .container_collisions(self.sim_info.sub_step_dt);
+                // println!("{:?}", t1.elapsed());
             }
 
             if self.sim_info.is_recording {

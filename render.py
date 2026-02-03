@@ -23,7 +23,7 @@ running = True
 dt = 0.01
 
 frame_i = 0
-f = open("simulations/50k.txt", 'r')
+f = open("simulations/simulation_output.txt", 'r')
 file_lines = f.readlines()
 f.close()
 

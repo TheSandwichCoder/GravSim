@@ -28,8 +28,6 @@ impl Container {
     pub fn construct_quadtree(&mut self) {
         self.quadtree.reset();
 
-        self.particles.sort_unstable_by_key(|p| morton_key(p.pos));
-
         for particle_i in 0..self.particles.len() {
             self.quadtree.add_particle(&self.particles, particle_i);
         }
